@@ -13,12 +13,12 @@ RSpec.describe ClickHouse do
       array_of_string = ClickHouse::Type::ArrayType.new(string_type)
 
       subject.insert('rspec', columns: ['tags']) do |buffer|
-        buffer << [array_of_string.serialize(['Berger King', "McDonald’s"])]
+        buffer << [array_of_string.serialize(['Burger King', "McDonald’s"])]
       end
     end
 
     it 'works' do
-      expect(subject.select_one('SELECT * FROM rspec')).to eq('tags' => ['Berger King', "McDonald’s"])
+      expect(subject.select_one('SELECT * FROM rspec')).to eq('tags' => ['Burger King', "McDonald’s"])
     end
   end
 end
