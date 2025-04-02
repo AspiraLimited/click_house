@@ -5,7 +5,7 @@ module ClickHouse
     module ConnectionTable
       # @return [Array<String>]
       def tables
-        Array(execute('SHOW TABLES FORMAT CSV').body).tap(&:flatten!)
+        Array(execute('SHOW TABLES FORMAT CSV').body).flatten.reject(&:empty?)
       end
 
       # @return [ResultSet]

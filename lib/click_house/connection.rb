@@ -10,6 +10,12 @@ module ClickHouse
     include Extend::ConnectionAltering
     include Extend::ConnectionExplaining
 
+    Faraday::Response.register_middleware(
+      raise_error: ClickHouse::Middleware::RaiseError,
+      logging: ClickHouse::Middleware::Logging,
+      parse_csv: ClickHouse::Middleware::ParseCsv
+    )
+
     attr_reader :config
 
     # @param [Config]
@@ -53,10 +59,10 @@ module ClickHouse
         conn.headers = config.headers
         conn.ssl.verify = config.ssl_verify
         conn.request(:basic_auth, config.username, config.password) if config.auth?
-        conn.response Middleware::RaiseError
-        conn.response Middleware::Logging, logger: config.logger!
+        conn.response :raise_error
+        conn.response :logging, logger: config.logger!
         conn.response :json, content_type: %r{application/json}
-        conn.response Middleware::ParseCsv, content_type: %r{text/csv}
+        conn.response :parse_csv, content_type: %r{text/csv}
         conn.adapter config.adapter
       end
     end

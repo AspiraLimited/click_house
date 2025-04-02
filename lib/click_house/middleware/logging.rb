@@ -3,7 +3,8 @@
 module ClickHouse
   module Middleware
     class Logging < Faraday::Middleware
-      Faraday::Response.register_middleware self => self
+      # Register under a usable symbol
+      Faraday::Response.register_middleware(logging: self)
 
       SUMMARY_HEADER = 'x-clickhouse-summary'
 
@@ -26,14 +27,17 @@ module ClickHouse
         logger.level == Logger::DEBUG
       end
 
-      # rubocop:disable Layout/LineLength
       def on_complete(env)
         summary = extract_summary(env.response_headers)
-        logger.info("\e[1m[35mSQL (#{duration_stats_log(env.body)})\e[0m #{query(env)};")
+
+        logger.info("\e[1m\e[35mSQL (#{duration_stats_log(env.body)})\e[0m #{query(env)};\e[0m")
         logger.debug(body) if body && !query_in_body?(env)
-        logger.info("\e[1m[36mRead: #{summary.fetch(:read_rows)} rows, #{summary.fetch(:read_bytes)}. Written: #{summary.fetch(:written_rows)} rows, #{summary.fetch(:written_bytes)}\e[0m")
+
+        logger.info(
+          "\e[1m\e[36mRead: #{summary[:read_rows]} rows, #{summary[:read_bytes]}. " \
+            "Written: #{summary[:written_rows]} rows, #{summary[:written_bytes]}\e[0m"
+        )
       end
-      # rubocop:enable Layout/LineLength
 
       def duration
         timestamp - starting
@@ -57,21 +61,23 @@ module ClickHouse
 
       def duration_stats_log(body)
         elapsed = duration
-        clickhouse_elapsed = body['statistics'].fetch('elapsed') if body.is_a?(Hash) && body.key?('statistics')
+        ch_elapsed = body.dig('statistics', 'elapsed') if body.is_a?(Hash)
 
-        [
-          "Total: #{Util::Pretty.measure(elapsed * 1000)}",
-          ("CH: #{Util::Pretty.measure(clickhouse_elapsed * 1000)}" if clickhouse_elapsed)
-        ].compact.join(', ')
+        parts = ["Total: #{Util::Pretty.measure(elapsed * 1000)}"]
+        parts << "CH: #{Util::Pretty.measure(ch_elapsed * 1000)}" if ch_elapsed
+        parts.join(', ')
       end
 
       def extract_summary(headers)
-        JSON.parse(headers.fetch('x-clickhouse-summary', '{}')).tap do |summary|
-          summary[:read_rows] = summary['read_rows']
-          summary[:read_bytes] = Util::Pretty.size(summary['read_bytes'].to_i)
-          summary[:written_rows] = summary['written_rows']
-          summary[:written_bytes] = Util::Pretty.size(summary['written_bytes'].to_i)
-        end
+        raw = headers.fetch(SUMMARY_HEADER, '{}')
+        json = JSON.parse(raw)
+
+        {
+          read_rows: json['read_rows'],
+          read_bytes: Util::Pretty.size(json['read_bytes'].to_i),
+          written_rows: json['written_rows'],
+          written_bytes: Util::Pretty.size(json['written_bytes'].to_i)
+        }
       rescue JSON::ParserError
         {}
       end

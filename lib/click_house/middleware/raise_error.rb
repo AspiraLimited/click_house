@@ -5,7 +5,8 @@ module ClickHouse
     class RaiseError < Faraday::Middleware
       SUCCEED_STATUSES = (200..299).freeze
 
-      Faraday::Response.register_middleware self => self
+      # Correct registration
+      Faraday::Response.register_middleware(raise_error: self)
 
       def call(environment)
         @app.call(environment).on_complete(&method(:on_complete))

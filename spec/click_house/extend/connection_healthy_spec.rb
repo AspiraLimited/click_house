@@ -12,7 +12,7 @@ RSpec.describe ClickHouse::Extend::ConnectionHealthy do
 
     context 'when fail' do
       before do
-        subject.transport.port = '80'
+        subject.transport.port = '59999'
       end
 
       it 'errors' do
@@ -30,7 +30,7 @@ RSpec.describe ClickHouse::Extend::ConnectionHealthy do
 
     context 'when fail' do
       before do
-        subject.transport.port = '80'
+        subject.transport.port = '59999'
       end
 
       it 'errors' do

@@ -13,7 +13,11 @@ RSpec.describe ClickHouse::Extend::ConnectionTable do
     context 'when exists' do
       before do
         subject.execute <<~SQL
-          CREATE TABLE rspec (date Date, id UInt32) ENGINE = MergeTree(date, (id, date), 8192)
+          CREATE TABLE rspec (
+            date Date,
+            id UInt32
+          ) ENGINE = MergeTree
+          ORDER BY (id, date)
         SQL
       end
 
@@ -33,7 +37,11 @@ RSpec.describe ClickHouse::Extend::ConnectionTable do
     context 'when exists' do
       before do
         subject.execute <<~SQL
-          CREATE TABLE rspec (date Date, id UInt32) ENGINE = MergeTree(date, (id, date), 8192)
+          CREATE TABLE rspec (
+            date Date,
+            id UInt32
+          ) ENGINE = MergeTree
+          ORDER BY (id, date)
         SQL
       end
 
@@ -51,15 +59,16 @@ RSpec.describe ClickHouse::Extend::ConnectionTable do
             date Date,
             id UInt32,
             json Nested (uid UInt32)
-          ) ENGINE = MergeTree(date, (id, date), 8192)
+          ) ENGINE = MergeTree
+          ORDER BY (id, date)
         SQL
       end
 
       let(:expectation) do
         [
-          {'name' =>'date', 'type' =>'Date', 'default_type' =>'', 'default_expression' =>'', 'comment' =>'', 'codec_expression' =>'', 'ttl_expression' =>''},
-          {'name' =>'id', 'type' =>'UInt32', 'default_type' =>'', 'default_expression' =>'', 'comment' =>'', 'codec_expression' =>'', 'ttl_expression' =>''},
-          {'name' =>'json.uid', 'type' =>'Array(UInt32)', 'default_type' =>'', 'default_expression' =>'', 'comment' =>'', 'codec_expression' =>'', 'ttl_expression' =>''}
+          { 'name' => 'date', 'type' => 'Date', 'default_type' => '', 'default_expression' => '', 'comment' => '', 'codec_expression' => '', 'ttl_expression' => '' },
+          { 'name' => 'id', 'type' => 'UInt32', 'default_type' => '', 'default_expression' => '', 'comment' => '', 'codec_expression' => '', 'ttl_expression' => '' },
+          { 'name' => 'json.uid', 'type' => 'Array(UInt32)', 'default_type' => '', 'default_expression' => '', 'comment' => '', 'codec_expression' => '', 'ttl_expression' => '' }
         ]
       end
 
@@ -91,7 +100,11 @@ RSpec.describe ClickHouse::Extend::ConnectionTable do
     context 'when default' do
       before do
         subject.execute <<~SQL
-          CREATE TABLE rspec (date Date, id UInt32) ENGINE = MergeTree(date, (id, date), 8192)
+          CREATE TABLE rspec (
+            date Date,
+            id UInt32
+          ) ENGINE = MergeTree
+          ORDER BY (id, date)
         SQL
       end
 
@@ -105,7 +118,9 @@ RSpec.describe ClickHouse::Extend::ConnectionTable do
     context 'when table exists' do
       before do
         subject.execute <<~SQL
-          CREATE TABLE rspec(id Int64) ENGINE TinyLog
+          CREATE TABLE rspec (            
+            id Int64
+          ) ENGINE = TinyLog          
         SQL
 
         subject.insert('rspec', columns: %i[id], values: [[1]])
@@ -185,19 +200,19 @@ RSpec.describe ClickHouse::Extend::ConnectionTable do
   describe '#create_table' do
     context 'when column options' do
       before do
-        subject.create_table('rspec', engine: 'MergeTree(date, (year, date), 8192)') do |t|
-          t.UInt16      :id, 16, default: 0, ttl: 'date + INTERVAL 1 DAY'
-          t.UInt16      :year
-          t.IPv4        :ipv4
-          t.IPv6        :ipv6
-          t.Date        :date
-          t.DateTime    :time, 'UTC'
-          t.DateTime64  :time_with_usec, 4, 'UTC'
-          t.Decimal     :money, 5, 4
-          t.String      :event, nullable: true
-          t.Nested      :json do |n|
-            n.UInt8     :cid
-            n.Date      :created_at
+        subject.create_table('rspec', engine: 'MergeTree', order: '(year, date)') do |t|
+          t.UInt16 :id, 16, default: 0, ttl: 'date + INTERVAL 1 DAY'
+          t.UInt16 :year
+          t.IPv4 :ipv4
+          t.IPv6 :ipv6
+          t.Date :date
+          t.DateTime :time, 'UTC'
+          t.DateTime64 :time_with_usec, 4, 'UTC'
+          t.Decimal :money, 5, 4
+          t.String :event, nullable: true
+          t.Nested :json do |n|
+            n.UInt8 :cid
+            n.Date :created_at
           end
           t << "vendor Enum('microsoft' = 1, 'apple' = 2)"
         end
@@ -228,14 +243,14 @@ RSpec.describe ClickHouse::Extend::ConnectionTable do
     context 'when table options' do
       before do
         subject.create_table('rspec',
-          order: 'year',
-          ttl: 'date + INTERVAL 1 DAY',
-          sample: 'year',
-          settings: 'index_granularity=8192',
-          primary_key: 'year',
-          engine: 'MergeTree') do |t|
-          t.UInt16  :year
-          t.Date    :date
+                             order: 'year',
+                             ttl: 'date + INTERVAL 1 DAY',
+                             sample: 'year',
+                             settings: 'index_granularity=8192',
+                             primary_key: 'year',
+                             engine: 'MergeTree') do |t|
+          t.UInt16 :year
+          t.Date :date
         end
       end
 

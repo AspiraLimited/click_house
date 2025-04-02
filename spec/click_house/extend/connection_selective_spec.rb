@@ -3,8 +3,13 @@ RSpec.describe ClickHouse::Extend::ConnectionSelective do
 
   before do
     subject.execute <<~SQL
-      CREATE TABLE rspec (date Date, id UInt32, user String) ENGINE = MergeTree(date, (id, date), 8192)
-    SQL
+        CREATE TABLE rspec (
+          date Date,
+          id UInt32,
+          user String
+        ) ENGINE = MergeTree
+        ORDER BY (id, date)
+      SQL
 
     subject.execute <<~SQL
       INSERT INTO rspec (date, id, user) VALUES('2000-01-01', 1, 'Alice'), ('2000-01-02', 2, 'Bob'), ('2000-01-03', 3, 'Charlie')
